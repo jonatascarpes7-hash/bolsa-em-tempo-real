@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bolsa Simplificada</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--tx:#1c1c1a;--mut:#6b6b66;--bd:#dcdcd6;--ac:#1d6b4f;--up:#1a7f4b;--dn:#b3341f;--warn:#fff4d6;--warnt:#6a4b00}
+@media (prefers-color-scheme:dark){:root{--bg:#161615;--card:#201f1d;--tx:#ecebe6;--mut:#9a9992;--bd:#383733;--ac:#4cc38a;--up:#4cc38a;--dn:#ff7a63;--warn:#3a3118;--warnt:#f0d98a;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:960px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:0 0 8px}h3{font-size:15px;margin:0 0 4px}
+p{margin:0 0 8px}.mut{color:var(--mut);font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:14px 0}
+.warn{background:var(--warn);color:var(--warnt);border-radius:10px;padding:10px 12px;font-size:13px;margin:12px 0}
+button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;padding:7px 12px;cursor:pointer}
+button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:600;font-size:12px}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.just{white-space:pre-wrap;margin:6px 0}
+details{border-top:1px solid var(--bd);padding:8px 0}summary{cursor:pointer;font-weight:600}
+li{margin:2px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>Bolsa Simplificada</h1>
+<p class="mut" id="st">Carregando…</p>
+<div class="warn"><b>Importante:</b> este site não prevê o futuro e não recomenda compra ou venda. As “faixas de cenário” são cálculos estatísticos de oscilação e podem errar. As justificativas são hipóteses escritas por IA a partir de manchetes e podem estar incompletas ou erradas. Não sou assessor financeiro; para decidir, converse com um profissional habilitado.</div>
+
+<div class="card">
+<h2>Prazo das faixas de cenário</h2>
+<div class="row" id="hz"></div>
+<div class="row"><button id="csv">Baixar planilha (CSV)</button></div>
+</div>
+
+<div class="card"><h2>Maiores altas do dia</h2><div class="wrap"><table id="t1"></table></div></div>
+<div class="card"><h2>Maiores quedas do dia</h2><div class="wrap"><table id="t2"></table></div></div>
+
+<div class="card"><h2>Por que se moveu</h2><p class="mut" id="jm"></p><div id="jc"></div></div>
+
+<div class="card">
+<h2>Dicionário rápido</h2>
+<details><summary>Ticker (ex.: ABCD3, ABCD4)</summary><p>É o “apelido” da ação. O número indica o tipo: 3 é ordinária (voto), 4 é preferencial (prioridade em dividendos), 11 costuma ser unit ou fundo.</p></details>
+<details><summary>Dia, abertura e pregão</summary><p>“Dia” compara o preço atual com o fechamento anterior. “Abertura → agora” compara com o preço em que o pregão começou hoje.</p></details>
+<details><summary>Volume</summary><p>Quanto dinheiro foi negociado no papel hoje. Volume alto indica muita gente comprando e vendendo.</p></details>
+<details><summary>Faixa de cenário</summary><p>Intervalo em que o preço ficaria cerca de 2 de cada 3 vezes, se a oscilação do último ano se repetir. Em 1 de cada 3 vezes ele sai da faixa. Não é previsão.</p></details>
+</div>
+</main>
+<script>
+(function(){
+var HZ=[["1 dia",1],["1 semana",5],["1 mês",21],["3 meses",63],["6 meses",126],["12 meses",252]],cur=2,D=null;
+var $=function(i){return document.getElementById(i)};
+function f(n,k){return Number(n).toLocaleString("pt-BR",{minimumFractionDigits:k,maximumFractionDigits:k})}
+function by(t){return D.acoes.filter(function(a){return a.t===t})[0]}
+function faixa(t){var a=by(t),v=D.volatilidade[t];if(!a||!v)return["—","—"];var m=v/100*Math.sqrt(HZ[cur][1]/252);return[a.preco*Math.exp(-m),a.preco*Math.exp(m)]}
+function el(tag,txt,cls){var e=document.createElement(tag);e.textContent=txt;if(cls)e.className=cls;return e}
+function tabela(id,lista){
+var t=$(id);t.textContent="";var h=document.createElement("tr");
+["Ação","Preço","Abertura → agora","Dia","Volume","Faixa em "+HZ[cur][0]].forEach(function(x){h.appendChild(el("th",x))});t.appendChild(h);
+lista.forEach(function(k){var a=by(k);if(!a)return;var r=document.createElement("tr"),g=faixa(k);
+r.appendChild(el("td",k));r.appendChild(el("td","R$ "+f(a.preco,2)));
+r.appendChild(el("td",f(a.abertura,2)+" → "+f(a.preco,2)+" ("+(a.var_pregao>0?"+":"")+f(a.var_pregao,2)+"%)"));
+r.appendChild(el("td",(a.var_dia>0?"+":"")+f(a.var_dia,2)+"%",a.var_dia>=0?"up":"dn"));
+r.appendChild(el("td",f(a.volume,0)));
+r.appendChild(el("td",typeof g[0]==="number"?"R$ "+f(g[0],2)+" a "+f(g[1],2):"—"));t.appendChild(r)})}
+function cards(){
+var c=$("jc");c.textContent="";
+$("jm").textContent=D.fechado?(D.contexto?"Contexto do dia: "+D.contexto+".":""):"As justificativas são geradas depois do fechamento da bolsa. Volte mais tarde.";
+if(!D.fechado)return;
+D.altas.concat(D.quedas).forEach(function(k){var a=by(k);if(!a)return;
+var d=document.createElement("div");d.style.borderTop="1px solid var(--bd)";d.style.padding="10px 0";
+d.appendChild(el("h3",k+"  "+(a.var_dia>0?"+":"")+f(a.var_dia,2)+"%",a.var_dia>=0?"up":"dn"));
+d.appendChild(el("p",D.justificativas[k]||"Justificativa indisponível para esta ação.","just"));
+var n=D.noticias[k]||[];
+if(n.length){var de=document.createElement("details");de.appendChild(el("summary","Manchetes usadas ("+n.length+")"));
+var ul=document.createElement("ul");n.forEach(function(x){ul.appendChild(el("li",x.titulo+" — "+x.fonte))});de.appendChild(ul);d.appendChild(de)}
+c.appendChild(d)})}
+function render(){tabela("t1",D.altas);tabela("t2",D.quedas);cards()}
+function init(d){D=d;var p=d.data.split("-");
+$("st").textContent="Dados de "+p[2]+"/"+p[1]+"/"+p[0]+", atualizados às "+d.atualizado+" (horário de Brasília). Cotações com possível atraso.";
+HZ.forEach(function(z,i){var b=document.createElement("button");b.textContent=z[0];if(i===cur)b.className="on";
+b.onclick=function(){cur=i;Array.prototype.forEach.call($("hz").children,function(x,j){x.className=j===i?"on":""});render()};$("hz").appendChild(b)});
+render()}
+$("csv").onclick=function(){if(!D)return;
+var q=function(s){return '"'+String(s).replace(/"/g,'""')+'"'},L=[["Ticker","Abertura","Preço","Pregão %","Dia %","Máxima","Mínima","Volume","Faixa mín ("+HZ[cur][0]+")","Faixa máx"].join(";")];
+D.acoes.forEach(function(a){var g=faixa(a.t);L.push([q(a.t),f(a.abertura,2),f(a.preco,2),f(a.var_pregao,2),f(a.var_dia,2),f(a.maxima,2),f(a.minima,2),a.volume,typeof g[0]==="number"?f(g[0],2):"",typeof g[1]==="number"?f(g[1],2):""].join(";"))});
+var u=URL.createObjectURL(new Blob(["\ufeff"+L.join("\n")],{type:"text/csv;charset=utf-8"})),a=document.createElement("a");a.href=u;a.download="bolsa-simplificada.csv";a.click();URL.revokeObjectURL(u)};
+fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw 0;return r.json()}).then(init).catch(function(){$("st").textContent="Ainda não há dados. Rode o workflow “Atualizar dados da bolsa” na aba Actions do GitHub num dia de pregão."});
+})();
+</script>
+</body>
+</html>

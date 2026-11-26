@@ -1,0 +1,25 @@
+name: Atualizar dados da bolsa
+on:
+  schedule:
+    - cron: "*/30 13-21 * * 1-5"   # UTC; equivale a 10h–18h30 em Brasília, dias úteis
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: atualizar-bolsa
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install yfinance feedparser anthropic
+      - run: python atualizar.py
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - run: |
+          git config user.name "bot-bolsa"
+          git config user.email "bot-bolsa@users.noreply.github.com"
+          git add docs/data.json
+          git diff --staged --quiet || (git commit -m "Atualiza dados" && git push)
